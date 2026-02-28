@@ -121,4 +121,7 @@ Columns:
 ## Want to play around with the Tobit Model? 
 
 You can use file tobit_model_infer_Kd_syndata_test_file.py to play around with some simulated data!
+---
+## Thank yous? 
+Thank you to Thomas Dupic (https://www.thopic.eu) and Alief Moulana, who wrote the original code from which these scripts are based on. 
 
