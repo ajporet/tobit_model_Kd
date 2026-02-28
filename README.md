@@ -37,7 +37,7 @@ where $\Phi$ and $\varphi$ denote the standard normal cumulative distribution fu
 An analogous formulation applies for right-censored data — this package handles both right and left censoring. To fit this maximum likelihood–based model, I use the bounded Broyden–Fletcher–Goldfarb–Shanno (BFGS) optimization algorithm as implemented in `scipy`.
 
 
-## Running Package Quickstart
+## Running Package
 
 To run this package, you'll need an input file with columns of the form:
 
@@ -118,5 +118,7 @@ Columns:
 * Predictions use `tobit_model_funcs_infer_Kd.cens_predict` and (R^2) uses `tobit_model_funcs_infer_Kd.r2_score`.
 
 ---
+## Want to play around with the Tobit Model? 
 
+You can use file tobit_model_infer_Kd_syndata_test_file.py to play around with some simulated data!
 
