@@ -194,7 +194,7 @@ sns.scatterplot(
     s=10,
     ax=ax,
 )
-ax.axline((0, 0), slope=1, color='grey', linestyle='-')
+ax.axline((10,10), slope=1, color='grey', linestyle='-')
 ax.set_xlabel(r"$K_D$ true")
 ax.set_ylabel(r"$K_D$ predicted")
 ax.set_title("Predicted vs true Kd")
