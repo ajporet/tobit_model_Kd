@@ -117,11 +117,12 @@ Columns:
 * Non-informative interaction terms (no variation) are automatically removed before fitting.
 * Predictions use `tobit_model_funcs_infer_Kd.cens_predict` and (R^2) uses `tobit_model_funcs_infer_Kd.r2_score`.
 
----
-## Want to play around with the Tobit Model? 
+## Want to play around with the Tobit Model?
 
-You can use file tobit_model_infer_Kd_syndata_test_file.py to play around with some simulated data!
----
-## Thank yous? 
-Thank you to Thomas Dupic (https://www.thopic.eu) and Alief Moulana, who wrote the original code from which these scripts are based on. 
+You can use the file `tobit_model_infer_Kd_syndata_test_file.py` to experiment with simulated data.
 
+---
+
+## Thank yous!
+
+Thank you to [Thomas Dupic](https://www.thopic.eu) and Alief Moulana, who wrote the original code on which these scripts are based.
