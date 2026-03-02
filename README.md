@@ -2,13 +2,13 @@
 
 This package contains Python scripts for fitting a Tobit regression model to a linear model of mutational effects on antibody binding affinity derived from Tite-Seq fluorescence measurements. For background, see *“Binding affinity landscapes constrain the evolution of broadly neutralizing anti-influenza antibodies”* by Phillips et al. ([https://doi.org/10.7554/eLife.71393](https://doi.org/10.7554/eLife.71393)).
 
-In brief, the goal is to infer the effects of individual mutations from a panel of genetically distinct antibody variants and their associated $K_D$ values, obtained by fitting Tite-Seq titration data to a Hill curve. We then model biochemical epistasis using a linear expansion of the form:
+In brief, the goal is to infer the effects of individual mutations from a panel of combinatorial pool of antibody variants (ex a pool that contains every combination of mutant A, B, and C) and their associated $K_D$ values, obtained by fitting Tite-Seq titration data to a Hill curve. We then model biochemical epistasis using a linear expansion of the form:
 
 $$ -\log_{10} K_D =  \beta_0 + \sum_{i=1}^{16} x_i \beta_i + \sum_{i=1}^{16} \sum_{j>i}^{16} x_i x_j \beta_{ij} * \cdots  $$
 
 Here, $( x_i \in {0,1} )$ indicates the presence or absence of mutation $i$ in a given antibody variant. The coefficients $\beta_i$ quantify the additive effects of individual mutations, while $\beta_{ij}$ (and higher-order terms) capture epistatic interactions affecting binding affinity.
 
-Because Tite-Seq measurements are censored—i.e., affinities below a detection threshold cannot be directly quantified, though variants in this regime are known—we use a Tobit regression framework to properly account for censoring. For left-censored data with threshold $y_L$, define
+Because Tite-Seq measurements are censored—i.e., affinities below a detection threshold cannot be directly quantified, though we can identify variants in this regime —we use a Tobit regression framework to properly account for censoring. For left-censored data with threshold $y_L$, define
 
 $$
 I(y_j) =
@@ -44,7 +44,7 @@ To run this package, you'll need an input file with columns of the form:
 * `variant_id` (string identifier per variant)
 * one or more genotype columns containing `"G"` or `"M"`; the script detects these as any column name containing `"site"` (e.g., `site1`, `site2`, …). Here G indicate the 'germline' variant present and 'M' the 'mutant' variant.
 * an antigen label column (specified by `--antigen_column`). Many of the scripts used in the Desai lab contain measurements for multiple antigens concatenated in the same sheet.
-* a phenotype column containing (-\log_{10}(K_D)) (specified by `--kd_column_name`)
+* a phenotype column containing (-\log_{10}(K_D)) (column name specified by `--kd_column_name`)
 * optionally, a censoring column (specified by `--censor_column_name`) with values in `{-1,0,1}` 
 
 Here are the command line arguments needed to run this file:
@@ -59,7 +59,7 @@ Here are the command line arguments needed to run this file:
 * `--kd_column_name` *(str)*: Column containing (-\log_{10}(K_D)).
 * `--order` *(int)*: Maximum interaction order (e.g., 1 = additive, 2 = pairwise, 3 = third-order…).
 * `--num_folds` *(int)*: Number of folds for CV splitting.
-* `--fold_idx` *(int)*: Which fold to train/test on. Use `-1` to train on all data (disables CV split).
+* `--fold_idx` *(int)*: Which fold to train/test on. Use `-1` to train on all data (disables CV split). Folds are specified seperately for ease of parallelization on slurm clusters such as Harvard's FASRC. 
 * `--penalization` *(float)*: Regularization strength (\lambda) (internally scaled by training set size).
 * `--reg_type` *(str)*: Regularization type: `l1` or `l2`.
 * `--seed` *(int)*: Random seed (controls shuffling and reproducibility).
@@ -96,7 +96,6 @@ Columns include:
 * `geno`: `variant_id` string
 * `train_type`: `"train"` or `"test"`
 * `true_pred_del`: `true_kd - predicted_kd`
-* plus one column per retained feature (e.g., `intercept`, `site3`, `site3,site7`, …)
 
 ### 2) `{prefix}_model_results.csv`
 
@@ -105,7 +104,7 @@ Fitted coefficients.
 Columns:
 
 * `beta_val`: estimated coefficient value
-* `beta`: feature name (comma-separated interaction terms)
+* `beta`: feature name (comma-separated interaction terms) (e.g., `intercept`, `site3`, `site3,site7`, …)
 * `mat_index`: column index in the retained design matrix
 
 ---
@@ -113,8 +112,8 @@ Columns:
 ## Important behavior / caveats
 
 * **Genotypes must be coded as `"G"` and `"M"`** in the `site*` columns (hard-coded mapping `G→0`, `M→1`).
-* The script checks for **rank-deficient feature matrices** (e.g., mutually exclusive mutations) and will error with guidance if interdependent columns are detected.
-* Non-informative interaction terms (no variation) are automatically removed before fitting.
+* The script checks for **rank-deficient feature matrices** (e.g., mutually exclusive mutations - for example, every variant that has a mutation in site1 also has a mutation in site2) and will error with guidance if interdependent columns are detected.
+* Non-informative interaction terms (ex. every allele in site3 is "M") are automatically removed before fitting.
 * Predictions use `tobit_model_funcs_infer_Kd.cens_predict` and (R^2) uses `tobit_model_funcs_infer_Kd.r2_score`.
 
 ## Want to play around with the Tobit Model?
