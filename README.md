@@ -4,7 +4,7 @@ This package contains Python scripts for fitting a Tobit regression model to a l
 
 In brief, the goal is to infer the effects of individual mutations from a panel of combinatorial pool of antibody variants (ex a pool that contains every combination of mutant A, B, and C) and their associated $K_D$ values, obtained by fitting Tite-Seq titration data to a Hill curve. We then model biochemical epistasis using a linear expansion of the form:
 
-$$ -\log_{10} K_D =  \beta_0 + \sum_{i=1}^{16} x_i \beta_i + \sum_{i=1}^{16} \sum_{j>i}^{16} x_i x_j \beta_{ij} * \cdots  $$
+$$ -\log_{10} K_D =  \beta_0 + \sum_{i=1}^{16} x_i \beta_i + \sum_{i=1}^{16} \sum_{j>i}^{16} x_i x_j \beta_{ij}  \cdots  $$
 
 Here, $( x_i \in {0,1} )$ indicates the presence or absence of mutation $i$ in a given antibody variant. The coefficients $\beta_i$ quantify the additive effects of individual mutations, while $\beta_{ij}$ (and higher-order terms) capture epistatic interactions affecting binding affinity.
 
@@ -25,10 +25,10 @@ $$
 \prod_{j=1}^{N}
 \left[
 \frac{1}{\sigma}
-\varphi!\left(\frac{y_j - X_j \beta}{\sigma}\right)
+\varphi \left(\frac{y_j - X_j \beta}{\sigma}\right)
 \right]^{I(y_j)}
 \left[
-1 - \Phi!\left(\frac{X_j \beta - y_L}{\sigma}\right)
+1 - \Phi \left(\frac{X_j \beta - y_L}{\sigma}\right)
 \right]^{1 - I(y_j)}
 $$
 
@@ -44,7 +44,7 @@ To run this package, you'll need an input file with columns of the form:
 * `variant_id` (string identifier per variant)
 * one or more genotype columns containing `"G"` or `"M"`; the script detects these as any column name containing `"site"` (e.g., `site1`, `site2`, …). Here G indicate the 'germline' variant present and 'M' the 'mutant' variant.
 * an antigen label column (specified by `--antigen_column`). Many of the scripts used in the Desai lab contain measurements for multiple antigens concatenated in the same sheet.
-* a phenotype column containing (-\log_{10}(K_D)) (column name specified by `--kd_column_name`)
+* a phenotype column containing $-\log_{10}(K_D)$ (column name specified by `--kd_column_name`)
 * optionally, a censoring column (specified by `--censor_column_name`) with values in `{-1,0,1}` 
 
 Here are the command line arguments needed to run this file:
@@ -91,7 +91,7 @@ Per-variant results and design-matrix features.
 
 Columns include:
 
-* `true_kd`: observed (or censored-to-bound) (-\log_{10}(K_D))
+* `true_kd`: observed (or censored-to-bound) $-\log_{10}(K_D)$
 * `predicted_kd`: Tobit model prediction (with censor-aware prediction)
 * `geno`: `variant_id` string
 * `train_type`: `"train"` or `"test"`
