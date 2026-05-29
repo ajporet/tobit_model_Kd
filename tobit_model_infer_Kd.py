@@ -46,7 +46,7 @@ def parse_arguments():
                           help="Order of the model.")
     
     required.add_argument("--num_folds", type=int, required=True,
-                          help="Number of folds for cross-validation.")
+                          help="Number of folds for cross-validation. Set to -1 to train on all data (no CV). ")
     
     required.add_argument("--fold_idx", type=int, required=True,
                           help=("Specific fold to train on. "
@@ -88,6 +88,9 @@ def parse_arguments():
                           help=("Right-censoring value. "
                                 "If -1 this setting is disabled."))
 
+    optional.add_argument("--check_redundancy", type=float, required=False,default=1,
+                          help=("Check for redundant columns. "
+                                "If 0 this setting is disabled."))
 
     return parser.parse_args()    
 ##########################################################################################
@@ -132,6 +135,7 @@ def main():
     
     # Seed
     seed = int(args.seed)
+    disable_check = int(args.check_redundancy)
         
     np.random.seed(seed)
 
@@ -191,7 +195,7 @@ def main():
         k_split_start = test_div*fold_i
         
         # Chucks any remainder samples into the last test set 
-        if fold_i==(test_div-1):
+        if fold_i == (num_folds - 1):
             k_split_stop = num_samples
         else:
             k_split_stop = test_div*(fold_i+1)
@@ -207,7 +211,7 @@ def main():
         geno_string_train = genos_string[:k_split_start] + genos_string[k_split_stop:]
 
         train_size = num_samples - (k_split_stop-k_split_start)
-        penalization_scaled = float(penalization) / train_size
+        #penalization_scaled = float(penalization) / train_size
         
                             # in format (test geno string, train geno string)
 
@@ -225,8 +229,9 @@ def main():
         train_tot_y  = test_y
         cens_train   = test_cens
         geno_string_train = genos_string
+
         
-        penalization_scaled = float(penalization) / num_samples
+        #penalization_scaled = float(penalization) / num_samples
 
     print("\n########################### Run details ###########################")
     print(f"Antigen: {example_antigen}", flush=True)
@@ -243,8 +248,8 @@ def main():
     print(f"Number of samples used for model test+train: {open_data.shape[0]}")
     print(f"Number training samples: {len(train_tot_x)}")
     print(f"Number test samples: {len(test_x)}")
-    if fold_i>0:
-        print(f"Total fold number: {num_folds}. Running {fold_idx} fold.")
+    if fold_i>=0:
+        print(f"Total fold number: {num_folds}. Running {fold_i} fold.")
     else:
         print(f"Running model on all data.")
     print(f"Number of censored samples in total: {np.nansum(cens!=0)}")
@@ -258,15 +263,6 @@ def main():
 
     ##########################################################################################
     ##########################################################################################
-
-   
-    tr = tobit_functions.TobitModel(fit_intercept=False, 
-                                    lower=left_censor, 
-                                    upper=right_censor, 
-                                    alpha=penalization_scaled, 
-                                    penalize_intercept=False,
-                                    l1_or_l2=reg_type)
-
     
     poly = sklearn.preprocessing.PolynomialFeatures(order,
                                                    interaction_only=True,
@@ -274,24 +270,24 @@ def main():
     
     # Check for mutual exclusivity (ex. two mutations K82I and K82D which 
     # by definition cannot both be present in a sequence ) 
-    
     geno_check_rank_xform = poly.fit_transform(genos)
-    rank = np.linalg.matrix_rank(geno_check_rank_xform)
-    if geno_check_rank_xform.shape[1] > rank:
-        print("WARNING: interdependent columns observed.")
-        # test_mat = np.asarray([[0, 0,1,1,0],
-        #                       [0, 0,0,0,1],
-        #                       [1, 1,0,0,0],
-        #                       [1, 1,1,1,1]])
-        M=sympy.Matrix(geno_check_rank_xform)
-        ns = M.nullspace()
-        
-        print(f"There are {len(ns)} problematic beta sites.")
-        for i in range(len(ns)):
-            ns_arr= np.asarray(ns[i]).flatten()
-            sus_columns = [site_names[x] for x in np.argwhere(ns_arr!=0).flatten()]
-            print(f"Columns {' '.join(sus_columns)} are completely interdependent.")
-        raise Exception("Please consolidate your mutation sites and rerun this script.")
+    if disable_check:
+        rank = np.linalg.matrix_rank(geno_check_rank_xform)
+        if geno_check_rank_xform.shape[1] > rank:
+            print("WARNING: interdependent columns observed.")
+            # test_mat = np.asarray([[0, 0,1,1,0],
+            #                       [0, 0,0,0,1],
+            #                       [1, 1,0,0,0],
+            #                       [1, 1,1,1,1]])
+            M=sympy.Matrix(geno_check_rank_xform)
+            ns = M.nullspace()
+            
+            print(f"There are {len(ns)} problematic beta sites.")
+            for i in range(len(ns)):
+                ns_arr= np.asarray(ns[i]).flatten()
+                sus_columns = [site_names[x] for x in np.argwhere(ns_arr!=0).flatten()]
+                print(f"Columns {' '.join(sus_columns)} are completely interdependent.")
+            raise Exception("Please consolidate your mutation sites and rerun this script.")
 
     # Remove redundant features
     poly_feature_names = poly.get_feature_names_out()
@@ -312,12 +308,18 @@ def main():
         print(f"Columns {' '.join(map(str, sus_beta))} are redundant, ...")
         print(f"Removing those terms.")
         
-
-
     num_beta = len(poly_feature_names)
     arr_beta = np.arange(num_beta)
     mask_redun_beta = np.isin(arr_beta, non_represented_sites)
     nonred_beta = arr_beta[~mask_redun_beta].astype(int)
+    penalization_scaled = float(penalization) * len(train_tot_x)
+
+    tr = tobit_functions.TobitModel(fit_intercept=False, 
+                                    lower=left_censor, 
+                                    upper=right_censor, 
+                                    alpha=penalization_scaled, 
+                                    penalize_intercept=False,
+                                    l1_or_l2=reg_type)
 
            
     # Transform and scale, removing errant sites

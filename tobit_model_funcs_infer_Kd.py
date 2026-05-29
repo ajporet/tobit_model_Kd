@@ -63,7 +63,6 @@ def tobit_neg_log_likelihood_with_l1(xs, ys, params, alpha=0.0, penalize_interce
     if l1_or_l2 == 'l2':
         penalty = alpha * (np.sum(b[1:]**2) if not penalize_intercept else  np.sum(b**2))
     elif l1_or_l2 == 'l1':
-        smoothness_ep = 1e-6
         penalty = alpha * (
             np.sum(np.sqrt(b[1:]**2 + smoothness_ep)) if not penalize_intercept
             else np.sum(np.sqrt(b**2 + smoothness_ep))
@@ -211,7 +210,7 @@ class TobitModel:
         # pd.DataFrame(poly_train[order]), pd.Series(phenos_train), pd.Series(cens_train), 
         #                   verbose=False
 
-    def fit(self, x, y, cens, alpha=0.0, penalize_intercept=False, verbose=False, l1_or_l2=None):
+    def fit(self, x, y, cens, alpha=None, penalize_intercept=None, verbose=False, l1_or_l2=None):
         """
         Fit a maximum-likelihood Tobit regression
         :param x: Pandas DataFrame (n_samples, n_features): Data
@@ -302,6 +301,8 @@ class TobitModel:
     def predict(self, x):
         y_predd = self.intercept_ + np.dot(x, self.coef_)
         y_predd[y_predd < self.lower_] = self.lower_
+        if self.upper_ != -1:
+            y_predd[y_predd > self.upper_] = self.upper_
         return y_predd
     
     def unfiltered_predict(self, x):
